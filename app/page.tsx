@@ -53,7 +53,12 @@ export default function Home() {
     <main className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center p-4 gap-6">
       <h1 className="text-4xl font-bold text-white">Snake Game</h1>
 
-      <ScoreBoard score={score} highScore={highScore} level={level} />
+      <ScoreBoard
+        score={score}
+        highScore={highScore}
+        level={level}
+        isNewBest={score > highScore && status === 'playing'}
+      />
 
       <div className={`relative w-full max-w-[500px]${isShaking ? ' animate-board-shake' : ''}`}>
         <GameBoard

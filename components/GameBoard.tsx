@@ -85,7 +85,11 @@ export function GameBoard({ snake, food, scorePopups, onSwipe }: GameBoardProps)
                 isSnake
                   ? { backgroundColor: getSnakeColor(snakeIndex!, snake.length) }
                   : isFood
-                  ? { backgroundColor: '#ef4444' }
+                  ? {
+                      backgroundColor: '#ef4444',
+                      borderRadius: '50%',
+                      boxShadow: '0 0 0 2px rgba(255,255,255,0.5)',
+                    }
                   : undefined
               }
             />
