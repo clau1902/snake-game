@@ -101,3 +101,19 @@ export function isOppositeDirection(current: Direction, next: Direction): boolea
   };
   return opposites[current] === next;
 }
+
+export function getLevel(score: number): number {
+  return Math.floor(score / 50) + 1;
+}
+
+export function getGameSpeed(score: number): number {
+  const level = getLevel(score);
+  return Math.max(60, GAME_SPEED - (level - 1) * 15);
+}
+
+export function wrapPosition(pos: Position): Position {
+  return {
+    x: ((pos.x % GRID_SIZE) + GRID_SIZE) % GRID_SIZE,
+    y: ((pos.y % GRID_SIZE) + GRID_SIZE) % GRID_SIZE,
+  };
+}

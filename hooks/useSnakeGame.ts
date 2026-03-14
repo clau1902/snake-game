@@ -6,7 +6,8 @@ import {
   Direction,
   GameStatus,
   GRID_SIZE,
-  GAME_SPEED,
+  getGameSpeed,
+  getLevel,
   getInitialSnake,
   generateFood,
   moveSnake,
@@ -15,6 +16,7 @@ import {
   checkSelfCollision,
   checkFoodCollision,
   isOppositeDirection,
+  wrapPosition,
 } from '@/lib/game-utils';
 
 export interface GameState {
@@ -26,24 +28,53 @@ export interface GameState {
   highScore: number;
 }
 
+const HIGH_SCORE_KEY = 'snakeHighScore';
+
 export function useSnakeGame() {
   const [snake, setSnake] = useState<Position[]>(getInitialSnake);
   const [food, setFood] = useState<Position>({ x: GRID_SIZE - 1, y: 0 });
-
-  useEffect(() => {
-    setFood(generateFood(getInitialSnake()));
-  }, []);
   const [direction, setDirection] = useState<Direction>('RIGHT');
   const [score, setScore] = useState(0);
   const [status, setStatus] = useState<GameStatus>('idle');
   const [highScore, setHighScore] = useState(0);
+  const [wrapAround, setWrapAround] = useState(false);
 
   const directionRef = useRef<Direction>(direction);
   const nextDirectionRef = useRef<Direction | null>(null);
+  const scoreRef = useRef(0);
+  const wrapAroundRef = useRef(false);
+
+  const level = getLevel(score);
+  const gameSpeed = getGameSpeed(score);
+
+  // Load persisted high score and initial food on mount
+  useEffect(() => {
+    setFood(generateFood(getInitialSnake()));
+    const stored = localStorage.getItem(HIGH_SCORE_KEY);
+    if (stored) setHighScore(parseInt(stored, 10));
+  }, []);
+
+  // Persist high score whenever it changes
+  useEffect(() => {
+    localStorage.setItem(HIGH_SCORE_KEY, highScore.toString());
+  }, [highScore]);
 
   useEffect(() => {
     directionRef.current = direction;
   }, [direction]);
+
+  useEffect(() => {
+    scoreRef.current = score;
+  }, [score]);
+
+  useEffect(() => {
+    wrapAroundRef.current = wrapAround;
+  }, [wrapAround]);
+
+  const toggleWrapAround = useCallback(() => {
+    if (status === 'playing') return;
+    setWrapAround(prev => !prev);
+  }, [status]);
 
   const startGame = useCallback(() => {
     const initialSnake = getInitialSnake();
@@ -53,6 +84,7 @@ export function useSnakeGame() {
     directionRef.current = 'RIGHT';
     nextDirectionRef.current = null;
     setScore(0);
+    scoreRef.current = 0;
     setStatus('playing');
   }, []);
 
@@ -88,11 +120,13 @@ export function useSnakeGame() {
     }
 
     setSnake(prevSnake => {
-      const newHead = moveSnake(prevSnake, currentDirection)[0];
+      let newHead = moveSnake(prevSnake, currentDirection)[0];
 
-      if (checkWallCollision(newHead)) {
+      if (wrapAroundRef.current) {
+        newHead = wrapPosition(newHead);
+      } else if (checkWallCollision(newHead)) {
         setStatus('gameover');
-        setHighScore(prev => Math.max(prev, score));
+        setHighScore(prev => Math.max(prev, scoreRef.current));
         return prevSnake;
       }
 
@@ -100,7 +134,7 @@ export function useSnakeGame() {
 
       if (checkSelfCollision(newSnake)) {
         setStatus('gameover');
-        setHighScore(prev => Math.max(prev, score));
+        setHighScore(prev => Math.max(prev, scoreRef.current));
         return prevSnake;
       }
 
@@ -113,14 +147,14 @@ export function useSnakeGame() {
 
       return newSnake;
     });
-  }, [status, food, score]);
+  }, [status, food]);
 
   useEffect(() => {
     if (status !== 'playing') return;
 
-    const interval = setInterval(gameTick, GAME_SPEED);
+    const interval = setInterval(gameTick, gameSpeed);
     return () => clearInterval(interval);
-  }, [status, gameTick]);
+  }, [status, gameTick, gameSpeed]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -165,13 +199,16 @@ export function useSnakeGame() {
     food,
     direction,
     score,
+    level,
     status,
     highScore,
+    wrapAround,
     gridSize: GRID_SIZE,
     startGame,
     pauseGame,
     resumeGame,
     restartGame,
     changeDirection,
+    toggleWrapAround,
   };
 }
