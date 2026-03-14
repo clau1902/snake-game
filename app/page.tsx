@@ -15,6 +15,8 @@ export default function Home() {
     status,
     highScore,
     wrapAround,
+    countdown,
+    scorePopups,
     startGame,
     pauseGame,
     resumeGame,
@@ -30,11 +32,28 @@ export default function Home() {
       <ScoreBoard score={score} highScore={highScore} level={level} />
 
       <div className="relative w-full max-w-[500px]">
-        <GameBoard snake={snake} food={food} />
+        <GameBoard
+          snake={snake}
+          food={food}
+          scorePopups={scorePopups}
+          onSwipe={changeDirection}
+        />
 
         {status === 'idle' && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/70 rounded-lg">
             <p className="text-white text-xl">Press Start or Space to play</p>
+          </div>
+        )}
+
+        {status === 'countdown' && countdown !== null && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-lg">
+            <span
+              key={countdown}
+              className="text-white font-bold animate-countdown-pop"
+              style={{ fontSize: '6rem', lineHeight: 1 }}
+            >
+              {countdown === 0 ? 'Go!' : countdown}
+            </span>
           </div>
         )}
 

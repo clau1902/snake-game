@@ -9,7 +9,7 @@ export type Position = {
 
 export type Direction = 'UP' | 'DOWN' | 'LEFT' | 'RIGHT';
 
-export type GameStatus = 'idle' | 'playing' | 'paused' | 'gameover';
+export type GameStatus = 'idle' | 'countdown' | 'playing' | 'paused' | 'gameover';
 
 export function getInitialSnake(): Position[] {
   const startX = Math.floor(GRID_SIZE / 2);

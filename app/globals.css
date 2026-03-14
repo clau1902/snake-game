@@ -115,6 +115,26 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+@keyframes float-up {
+  0%   { transform: translateX(-50%) translateY(0);     opacity: 1; }
+  100% { transform: translateX(-50%) translateY(-40px); opacity: 0; }
+}
+
+@keyframes countdown-pop {
+  0%   { transform: scale(0.4); opacity: 0; }
+  40%  { transform: scale(1.2); opacity: 1; }
+  70%  { transform: scale(1);   opacity: 1; }
+  100% { transform: scale(0.8); opacity: 0; }
+}
+
+.animate-float-up {
+  animation: float-up 0.8s ease-out forwards;
+}
+
+.animate-countdown-pop {
+  animation: countdown-pop 0.9s ease-out forwards;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

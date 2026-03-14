@@ -26,6 +26,9 @@ export function GameControls({
   return (
     <div className="flex flex-col gap-2 w-full max-w-[500px]">
       <div className="flex gap-3">
+        {status === 'countdown' && (
+          <div className="flex-1 h-11" />
+        )}
         {status === 'idle' && (
           <Button onClick={onStart} className="flex-1" size="lg">
             <Play className="mr-2 h-4 w-4" />
@@ -60,7 +63,7 @@ export function GameControls({
 
       <Button
         onClick={onToggleWrap}
-        disabled={status === 'playing'}
+        disabled={status === 'playing' || status === 'countdown'}
         variant={wrapAround ? 'default' : 'outline'}
         size="sm"
         className="w-full"

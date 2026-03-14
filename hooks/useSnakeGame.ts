@@ -19,13 +19,10 @@ import {
   wrapPosition,
 } from '@/lib/game-utils';
 
-export interface GameState {
-  snake: Position[];
-  food: Position;
-  direction: Direction;
-  score: number;
-  status: GameStatus;
-  highScore: number;
+export interface ScorePopup {
+  id: number;
+  x: number;
+  y: number;
 }
 
 const HIGH_SCORE_KEY = 'snakeHighScore';
@@ -38,11 +35,14 @@ export function useSnakeGame() {
   const [status, setStatus] = useState<GameStatus>('idle');
   const [highScore, setHighScore] = useState(0);
   const [wrapAround, setWrapAround] = useState(false);
+  const [countdown, setCountdown] = useState<number | null>(null);
+  const [scorePopups, setScorePopups] = useState<ScorePopup[]>([]);
 
   const directionRef = useRef<Direction>(direction);
   const nextDirectionRef = useRef<Direction | null>(null);
   const scoreRef = useRef(0);
   const wrapAroundRef = useRef(false);
+  const popupIdRef = useRef(0);
 
   const level = getLevel(score);
   const gameSpeed = getGameSpeed(score);
@@ -71,8 +71,30 @@ export function useSnakeGame() {
     wrapAroundRef.current = wrapAround;
   }, [wrapAround]);
 
+  // Countdown tick: decrement every second, start game when it hits 0
+  useEffect(() => {
+    if (countdown === null) return;
+    if (countdown === 0) {
+      const t = setTimeout(() => {
+        setStatus('playing');
+        setCountdown(null);
+      }, 600);
+      return () => clearTimeout(t);
+    }
+    const t = setTimeout(() => setCountdown(prev => (prev ?? 1) - 1), 1000);
+    return () => clearTimeout(t);
+  }, [countdown]);
+
+  const addScorePopup = useCallback((pos: Position) => {
+    const id = popupIdRef.current++;
+    setScorePopups(prev => [...prev, { id, x: pos.x, y: pos.y }]);
+    setTimeout(() => {
+      setScorePopups(prev => prev.filter(p => p.id !== id));
+    }, 800);
+  }, []);
+
   const toggleWrapAround = useCallback(() => {
-    if (status === 'playing') return;
+    if (status === 'playing' || status === 'countdown') return;
     setWrapAround(prev => !prev);
   }, [status]);
 
@@ -85,7 +107,9 @@ export function useSnakeGame() {
     nextDirectionRef.current = null;
     setScore(0);
     scoreRef.current = 0;
-    setStatus('playing');
+    setScorePopups([]);
+    setStatus('countdown');
+    setCountdown(3);
   }, []);
 
   const pauseGame = useCallback(() => {
@@ -102,9 +126,7 @@ export function useSnakeGame() {
 
   const changeDirection = useCallback((newDirection: Direction) => {
     if (status !== 'playing') return;
-
     const currentDirection = nextDirectionRef.current ?? directionRef.current;
-
     if (!isOppositeDirection(currentDirection, newDirection)) {
       nextDirectionRef.current = newDirection;
     }
@@ -141,51 +163,35 @@ export function useSnakeGame() {
       if (checkFoodCollision(newHead, food)) {
         const grownSnake = growSnake(prevSnake, currentDirection);
         setScore(prev => prev + 10);
+        addScorePopup(food);
         setFood(generateFood(grownSnake));
         return grownSnake;
       }
 
       return newSnake;
     });
-  }, [status, food]);
+  }, [status, food, addScorePopup]);
 
   useEffect(() => {
     if (status !== 'playing') return;
-
     const interval = setInterval(gameTick, gameSpeed);
     return () => clearInterval(interval);
   }, [status, gameTick, gameSpeed]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (status === 'gameover') return;
+      if (status === 'gameover' || status === 'countdown') return;
 
       switch (e.key) {
-        case 'ArrowUp':
-          e.preventDefault();
-          changeDirection('UP');
-          break;
-        case 'ArrowDown':
-          e.preventDefault();
-          changeDirection('DOWN');
-          break;
-        case 'ArrowLeft':
-          e.preventDefault();
-          changeDirection('LEFT');
-          break;
-        case 'ArrowRight':
-          e.preventDefault();
-          changeDirection('RIGHT');
-          break;
+        case 'ArrowUp':    e.preventDefault(); changeDirection('UP');    break;
+        case 'ArrowDown':  e.preventDefault(); changeDirection('DOWN');  break;
+        case 'ArrowLeft':  e.preventDefault(); changeDirection('LEFT');  break;
+        case 'ArrowRight': e.preventDefault(); changeDirection('RIGHT'); break;
         case ' ':
           e.preventDefault();
-          if (status === 'idle') {
-            startGame();
-          } else if (status === 'playing') {
-            pauseGame();
-          } else if (status === 'paused') {
-            resumeGame();
-          }
+          if (status === 'idle')    startGame();
+          else if (status === 'playing') pauseGame();
+          else if (status === 'paused')  resumeGame();
           break;
       }
     };
@@ -203,6 +209,8 @@ export function useSnakeGame() {
     status,
     highScore,
     wrapAround,
+    countdown,
+    scorePopups,
     gridSize: GRID_SIZE,
     startGame,
     pauseGame,
