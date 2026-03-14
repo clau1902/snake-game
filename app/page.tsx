@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect, useRef } from 'react';
 import { useSnakeGame } from '@/hooks/useSnakeGame';
 import { GameBoard } from '@/components/GameBoard';
 import { ScoreBoard } from '@/components/ScoreBoard';
@@ -7,6 +8,10 @@ import { GameControls } from '@/components/GameControls';
 import { MobileControls } from '@/components/MobileControls';
 
 export default function Home() {
+  const [isShaking, setIsShaking] = useState(false);
+  const [showLevelUp, setShowLevelUp] = useState(false);
+  const prevLevelRef = useRef(1);
+
   const {
     snake,
     food,
@@ -25,13 +30,32 @@ export default function Home() {
     toggleWrapAround,
   } = useSnakeGame();
 
+  // Screen shake on game over
+  useEffect(() => {
+    if (status !== 'gameover') return;
+    setIsShaking(true);
+    const t = setTimeout(() => setIsShaking(false), 500);
+    return () => clearTimeout(t);
+  }, [status]);
+
+  // Level-up flash
+  useEffect(() => {
+    if (level > prevLevelRef.current && status === 'playing') {
+      setShowLevelUp(true);
+      const t = setTimeout(() => setShowLevelUp(false), 1200);
+      prevLevelRef.current = level;
+      return () => clearTimeout(t);
+    }
+    prevLevelRef.current = level;
+  }, [level, status]);
+
   return (
     <main className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center p-4 gap-6">
       <h1 className="text-4xl font-bold text-white">Snake Game</h1>
 
       <ScoreBoard score={score} highScore={highScore} level={level} />
 
-      <div className="relative w-full max-w-[500px]">
+      <div className={`relative w-full max-w-[500px]${isShaking ? ' animate-board-shake' : ''}`}>
         <GameBoard
           snake={snake}
           food={food}
@@ -60,6 +84,14 @@ export default function Home() {
         {status === 'paused' && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/70 rounded-lg">
             <p className="text-white text-xl">Paused</p>
+          </div>
+        )}
+
+        {showLevelUp && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <span key={level} className="text-yellow-300 text-4xl font-bold animate-level-up">
+              Level {level}!
+            </span>
           </div>
         )}
 

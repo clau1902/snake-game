@@ -80,7 +80,7 @@ export function GameBoard({ snake, food, scorePopups, onSwipe }: GameBoardProps)
           return (
             <div
               key={key}
-              className="aspect-square rounded-sm"
+              className={`aspect-square rounded-sm${isFood ? ' animate-food-pulse' : ''}`}
               style={
                 isSnake
                   ? { backgroundColor: getSnakeColor(snakeIndex!, snake.length) }
