@@ -169,6 +169,36 @@
   animation: level-up 1.2s ease-out forwards;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  /* Disable decorative animations entirely */
+  .animate-food-pulse,
+  .animate-board-shake {
+    animation: none;
+  }
+
+  /* Score pops would freeze in place without their animation — hide them */
+  .animate-float-up {
+    display: none;
+  }
+
+  /* These overlays still need to appear, just without motion */
+  .animate-countdown-pop,
+  .animate-level-up {
+    animation: none;
+    opacity: 1;
+  }
+
+  /* Tailwind's built-in pulse (used on "New Best!" label) */
+  .animate-pulse {
+    animation: none;
+  }
+
+  /* Kill all transitions */
+  *, *::before, *::after {
+    transition-duration: 0.01ms !important;
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
