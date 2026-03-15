@@ -169,6 +169,17 @@
   animation: level-up 1.2s ease-out forwards;
 }
 
+.crt-scanlines {
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.12) 2px,
+    rgba(0, 0, 0, 0.12) 4px
+  );
+  pointer-events: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   /* Disable decorative animations entirely */
   .animate-food-pulse,

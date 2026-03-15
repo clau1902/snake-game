@@ -17,19 +17,19 @@ export function ScoreBoard({ score, highScore, level, isNewBest }: ScoreBoardPro
   return (
     <div className="flex flex-col gap-2 w-full max-w-[500px]">
       <div className="flex gap-4">
-        <Card className="flex-1 bg-zinc-900 border-zinc-700">
+        <Card className="flex-1 bg-white/5 backdrop-blur-md border-white/10">
           <CardContent className="p-4">
             <p className="text-sm text-zinc-400">Score</p>
             <p className="text-3xl font-bold text-white">{score}</p>
           </CardContent>
         </Card>
-        <Card className="flex-1 bg-zinc-900 border-zinc-700">
+        <Card className="flex-1 bg-white/5 backdrop-blur-md border-white/10">
           <CardContent className="p-4">
             <p className="text-sm text-zinc-400">Level</p>
             <p className="text-3xl font-bold text-blue-400">{level}</p>
           </CardContent>
         </Card>
-        <Card className="flex-1 bg-zinc-900 border-zinc-700">
+        <Card className="flex-1 bg-white/5 backdrop-blur-md border-white/10">
           <CardContent className="p-4">
             <p className="text-sm text-zinc-400">
               {isNewBest ? (

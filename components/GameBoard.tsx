@@ -7,18 +7,27 @@ import { ScorePopup } from '@/hooks/useSnakeGame';
 interface GameBoardProps {
   snake: Position[];
   food: Position;
+  direction: Direction;
   scorePopups: ScorePopup[];
+  themeFilter: string;
   onSwipe: (direction: Direction) => void;
 }
 
 function getSnakeColor(index: number, total: number): string {
-  if (index === 0) return '#4ade80'; // head — green-400
+  if (index === 0) return '#4ade80';
   const t = index / Math.max(total - 1, 1);
-  const lightness = Math.round(45 - t * 20); // 45% → 25%
+  const lightness = Math.round(45 - t * 20);
   return `hsl(142, 71%, ${lightness}%)`;
 }
 
-export function GameBoard({ snake, food, scorePopups, onSwipe }: GameBoardProps) {
+const eyesByDirection: Record<Direction, Array<{ left: string; top: string }>> = {
+  RIGHT: [{ left: '62%', top: '18%' }, { left: '62%', top: '58%' }],
+  LEFT:  [{ left: '18%', top: '18%' }, { left: '18%', top: '58%' }],
+  UP:    [{ left: '18%', top: '18%' }, { left: '58%', top: '18%' }],
+  DOWN:  [{ left: '18%', top: '62%' }, { left: '58%', top: '62%' }],
+};
+
+export function GameBoard({ snake, food, direction, scorePopups, themeFilter, onSwipe }: GameBoardProps) {
   const snakeMap = new Map(snake.map((pos, i) => [`${pos.x},${pos.y}`, i]));
   const boardRef = useRef<HTMLDivElement>(null);
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
@@ -44,7 +53,6 @@ export function GameBoard({ snake, food, scorePopups, onSwipe }: GameBoardProps)
     const dy = t.clientY - touchStartRef.current.y;
     const absDx = Math.abs(dx);
     const absDy = Math.abs(dy);
-
     if (Math.max(absDx, absDy) >= 20) {
       onSwipe(absDx > absDy ? (dx > 0 ? 'RIGHT' : 'LEFT') : (dy > 0 ? 'DOWN' : 'UP'));
     }
@@ -54,19 +62,27 @@ export function GameBoard({ snake, food, scorePopups, onSwipe }: GameBoardProps)
   return (
     <div
       ref={boardRef}
-      className="relative bg-zinc-900 p-2 rounded-lg border border-zinc-700"
-      style={{ aspectRatio: '1 / 1', width: '100%', maxWidth: '500px' }}
+      className="relative rounded-lg border border-zinc-700 overflow-hidden"
+      style={{
+        aspectRatio: '1 / 1',
+        width: '100%',
+        maxWidth: '500px',
+        background: '#0f0f11',
+        boxShadow: 'inset 0 0 60px rgba(0,0,0,0.9)',
+      }}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
+      {/* Game grid */}
       <div
-        className="grid w-full h-full"
+        className="grid w-full h-full p-2"
         style={{
           gridTemplateColumns: `repeat(${GRID_SIZE}, 1fr)`,
           gap: '1px',
           backgroundImage:
-            'linear-gradient(to right, #27272a 1px, transparent 1px), linear-gradient(to bottom, #27272a 1px, transparent 1px)',
+            'linear-gradient(to right, #1f1f23 1px, transparent 1px), linear-gradient(to bottom, #1f1f23 1px, transparent 1px)',
           backgroundSize: `calc(100% / ${GRID_SIZE}) calc(100% / ${GRID_SIZE})`,
+          filter: themeFilter,
         }}
       >
         {Array.from({ length: GRID_SIZE * GRID_SIZE }, (_, index) => {
@@ -75,7 +91,33 @@ export function GameBoard({ snake, food, scorePopups, onSwipe }: GameBoardProps)
           const key = `${x},${y}`;
           const snakeIndex = snakeMap.get(key);
           const isSnake = snakeIndex !== undefined;
+          const isHead = snakeIndex === 0;
           const isFood = food.x === x && food.y === y;
+
+          if (isHead) {
+            const eyes = eyesByDirection[direction];
+            return (
+              <div
+                key={key}
+                className="aspect-square rounded-sm relative overflow-hidden"
+                style={{ backgroundColor: getSnakeColor(0, snake.length) }}
+              >
+                {eyes.map((eye, i) => (
+                  <div
+                    key={i}
+                    className="absolute rounded-full"
+                    style={{
+                      width: '22%',
+                      height: '22%',
+                      left: eye.left,
+                      top: eye.top,
+                      backgroundColor: '#052e16',
+                    }}
+                  />
+                ))}
+              </div>
+            );
+          }
 
           return (
             <div
@@ -88,7 +130,7 @@ export function GameBoard({ snake, food, scorePopups, onSwipe }: GameBoardProps)
                   ? {
                       backgroundColor: '#ef4444',
                       borderRadius: '50%',
-                      boxShadow: '0 0 0 2px rgba(255,255,255,0.5)',
+                      boxShadow: '0 0 8px 2px rgba(239,68,68,0.65), 0 0 0 2px rgba(255,255,255,0.4)',
                     }
                   : undefined
               }
@@ -97,7 +139,10 @@ export function GameBoard({ snake, food, scorePopups, onSwipe }: GameBoardProps)
         })}
       </div>
 
-      {/* Score popups */}
+      {/* CRT scanline overlay */}
+      <div className="crt-scanlines absolute inset-0" />
+
+      {/* Score popups — outside the filtered grid so colours stay white/yellow */}
       {scorePopups.map(popup => (
         <div
           key={popup.id}
