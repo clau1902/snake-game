@@ -20,6 +20,22 @@ function getSnakeColor(index: number, total: number): string {
   return `hsl(142, 71%, ${lightness}%)`;
 }
 
+function getSegmentBorderRadius(
+  hasTop: boolean, hasRight: boolean, hasBottom: boolean, hasLeft: boolean
+): string {
+  // Each corner: fully round if both adjacent sides are open,
+  // sharp if both sides have neighbours (inner turn corner),
+  // slightly round if only one side has a neighbour (straight edge).
+  const corner = (s1: boolean, s2: boolean) =>
+    !s1 && !s2 ? '50%' : s1 && s2 ? '0%' : '35%';
+  return [
+    corner(hasTop, hasLeft),
+    corner(hasTop, hasRight),
+    corner(hasBottom, hasRight),
+    corner(hasBottom, hasLeft),
+  ].join(' ');
+}
+
 const eyesByDirection: Record<Direction, Array<{ left: string; top: string }>> = {
   RIGHT: [{ left: '62%', top: '18%' }, { left: '62%', top: '58%' }],
   LEFT:  [{ left: '18%', top: '18%' }, { left: '18%', top: '58%' }],
@@ -32,7 +48,6 @@ export function GameBoard({ snake, food, direction, scorePopups, themeFilter, on
   const boardRef = useRef<HTMLDivElement>(null);
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
 
-  // Prevent page scroll when touching the board
   useEffect(() => {
     const el = boardRef.current;
     if (!el) return;
@@ -73,12 +88,11 @@ export function GameBoard({ snake, food, direction, scorePopups, themeFilter, on
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
-      {/* Game grid */}
       <div
         className="grid w-full h-full p-2"
         style={{
           gridTemplateColumns: `repeat(${GRID_SIZE}, 1fr)`,
-          gap: '1px',
+          gap: 0,
           backgroundImage:
             'linear-gradient(to right, #1f1f23 1px, transparent 1px), linear-gradient(to bottom, #1f1f23 1px, transparent 1px)',
           backgroundSize: `calc(100% / ${GRID_SIZE}) calc(100% / ${GRID_SIZE})`,
@@ -91,68 +105,82 @@ export function GameBoard({ snake, food, direction, scorePopups, themeFilter, on
           const key = `${x},${y}`;
           const snakeIndex = snakeMap.get(key);
           const isSnake = snakeIndex !== undefined;
-          const isHead = snakeIndex === 0;
-          const isFood = food.x === x && food.y === y;
+          const isHead  = snakeIndex === 0;
+          const isFood  = food.x === x && food.y === y;
 
           if (isHead) {
             const eyes = eyesByDirection[direction];
             return (
               <div
                 key={key}
-                className="aspect-square rounded-sm relative overflow-hidden"
-                style={{ backgroundColor: getSnakeColor(0, snake.length) }}
+                className="aspect-square relative overflow-hidden"
+                style={{
+                  backgroundColor: getSnakeColor(0, snake.length),
+                  borderRadius: '35%',
+                }}
               >
                 {eyes.map((eye, i) => (
                   <div
                     key={i}
                     className="absolute rounded-full"
-                    style={{
-                      width: '22%',
-                      height: '22%',
-                      left: eye.left,
-                      top: eye.top,
-                      backgroundColor: '#052e16',
-                    }}
+                    style={{ width: '22%', height: '22%', left: eye.left, top: eye.top, backgroundColor: '#052e16' }}
                   />
                 ))}
               </div>
             );
           }
 
-          return (
-            <div
-              key={key}
-              className={`aspect-square rounded-sm${isFood ? ' animate-food-pulse' : ''}`}
-              style={
-                isSnake
-                  ? { backgroundColor: getSnakeColor(snakeIndex!, snake.length) }
-                  : isFood
-                  ? {
-                      backgroundColor: '#ef4444',
-                      borderRadius: '50%',
-                      boxShadow: '0 0 8px 2px rgba(239,68,68,0.65), 0 0 0 2px rgba(255,255,255,0.4)',
-                    }
-                  : undefined
-              }
-            />
-          );
+          if (isSnake) {
+            const hasTop    = snakeMap.has(`${x},${y - 1}`);
+            const hasRight  = snakeMap.has(`${x + 1},${y}`);
+            const hasBottom = snakeMap.has(`${x},${y + 1}`);
+            const hasLeft   = snakeMap.has(`${x - 1},${y}`);
+            return (
+              <div
+                key={key}
+                className="aspect-square"
+                style={{
+                  backgroundColor: getSnakeColor(snakeIndex!, snake.length),
+                  borderRadius: getSegmentBorderRadius(hasTop, hasRight, hasBottom, hasLeft),
+                }}
+              />
+            );
+          }
+
+          if (isFood) {
+            return (
+              <div
+                key={key}
+                className="aspect-square animate-food-pulse"
+                style={{
+                  backgroundColor: '#ef4444',
+                  borderRadius: '50%',
+                  boxShadow: '0 0 8px 2px rgba(239,68,68,0.65), 0 0 0 2px rgba(255,255,255,0.4)',
+                }}
+              />
+            );
+          }
+
+          return <div key={key} className="aspect-square" />;
         })}
       </div>
 
       {/* CRT scanline overlay */}
       <div className="crt-scanlines absolute inset-0" />
 
-      {/* Score popups — outside the filtered grid so colours stay white/yellow */}
+      {/* Score popups — outside filtered grid so colours stay consistent */}
       {scorePopups.map(popup => (
         <div
           key={popup.id}
-          className="absolute pointer-events-none text-yellow-300 font-bold text-sm animate-float-up"
+          className={`absolute pointer-events-none font-bold text-sm animate-float-up ${
+            popup.points > 10 ? 'text-orange-400' : 'text-yellow-300'
+          }`}
           style={{
             left: `${((popup.x + 0.5) / GRID_SIZE) * 100}%`,
-            top: `${(popup.y / GRID_SIZE) * 100}%`,
+            top:  `${(popup.y / GRID_SIZE) * 100}%`,
           }}
         >
-          +10
+          +{popup.points}{popup.points > 10 ? ` ×${popup.points / 10}` : ''}
         </div>
       ))}
     </div>
